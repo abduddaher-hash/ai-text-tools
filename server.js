@@ -15,68 +15,119 @@ app.get('/', (req, res) => res.send('<h2>AI Text Tools Server يعمل بنجا�
 app.post('/api', async (req, res) => {
   try {
     const { type, text } = req.body;
-    if (!text) return res.status(400).json({ result: 'لا يوجد نص لمعالجته.' });
-
-    let prompt = text;
+    if(!text) return res.status(400).json({ result: 'لا يوجد نص لمعالجته.' });
 
     // Arabic services
-    if (type === 'spell') {
-      prompt = `صحح النص العربي التالي إملائياً ونحوياً دون تغيير المعنى:\n\n${text}`;
-    } else if (type === 'tashkeel') {
-      prompt = `ضع التشكيل الكامل والمحافظ على المعنى للنص العربي التالي:\n\n${text}`;
-    } else if (type === 'summarize' || type === 'summarize_ar') {
-      prompt = `اختصر النص التالي إلى ملخص موجز باللغة ${type.includes('_ar') ? 'العربية' : 'English'}، احتفظ بالنقاط الأساسية:\n\n${text}`;
-    } else if (type === 'arabic_improve') {
-      prompt = `حسّن لغة النص العربي التالي واجعله أكثر سلاسة وبلاغة دون تغيير المضمون:\n\n${text}`;
+    if(type === 'spell') {
+      const prompt = `صحح النص العربي التالي إملائياً ونحوياً دون تغيير المعنى، واذكر الكلمات التي تم تصحيحها:\n\n${text}`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0,
+        max_tokens: 1200
+      });
+
+      const correctedText = response.choices?.[0]?.message?.content ?? '';
+      const originalWords = text.split(/\s+/);
+      const correctedWords = correctedText.split(/\s+/);
+      const errors = originalWords.filter((w, i) => w !== correctedWords[i]);
+
+      res.json({ result: { original: text, corrected: correctedText, errors } });
+      return;
+    }
+    else if(type === 'tashkeel') {
+      const prompt = `ضع التشكيل الكامل والمحافظ على المعنى للنص العربي التالي:\n\n${text}`;
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 1200
+      });
+      const result = response.choices?.[0]?.message?.content ?? '';
+      res.json({ result });
+      return;
+    }
+    else if(type === 'summarize' || type === 'summarize_ar') {
+      const prompt = `اختصر النص التالي إلى ملخص موجز باللغة ${type.includes('_ar') ? 'العربية' : 'English'}، احتفظ بالنقاط الأساسية:\n\n${text}`;
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 1200
+      });
+      const result = response.choices?.[0]?.message?.content ?? '';
+      res.json({ result });
+      return;
+    }
+    else if(type === 'arabic_improve') {
+      const prompt = `حسّن لغة النص العربي التالي واجعله أكثر سلاسة وبلاغة دون تغيير المضمون:\n\n${text}`;
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 1200
+      });
+      const result = response.choices?.[0]?.message?.content ?? '';
+      res.json({ result });
+      return;
     }
 
     // English services
-    else if (type === 'grammar') {
-      // التعديل ليصبح Grammar Checker فعّال
-      prompt = `Detect grammar and spelling mistakes in the following English text. 
-Return a JSON object with three fields exactly like this:
-{
-  "original": "<original text>", 
-  "corrected": "<corrected text>", 
-  "errors": ["list of incorrect words"]
-}
-Do not translate the text. Keep everything in English exactly as provided.
-Text: "${text}"`;
-    } else if (type === 'rewrite') {
-      prompt = `Paraphrase the following English text, keep the original meaning, make it fluent:\n\n${text}`;
-    } else if (type === 'humanize') {
-      prompt = `Rewrite the following English text to sound human, natural and conversational, avoid AI-sounding phrasing:\n\n${text}`;
-    } else if (type === 'summarize_en') {
-      prompt = `Summarize the following English text concisely, keep main points:\n\n${text}`;
-    } else {
-      // fallback: send raw text
-      prompt = text;
+    else if(type === 'grammar') {
+      const prompt = `Correct the following English text for grammar and spelling errors. Keep the meaning exactly the same:\n\n${text}`;
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0,
+        max_tokens: 1200
+      });
+      const correctedText = response.choices?.[0]?.message?.content ?? '';
+      const originalWords = text.split(/\s+/);
+      const correctedWords = correctedText.split(/\s+/);
+      const errors = originalWords.filter((w, i) => w !== correctedWords[i]);
+      res.json({ result: { original: text, corrected: correctedText, errors } });
+      return;
+    }
+    else if(type === 'rewrite') {
+      const prompt = `Paraphrase the following English text, keep the original meaning, make it fluent:\n\n${text}`;
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 1200
+      });
+      const result = response.choices?.[0]?.message?.content ?? '';
+      res.json({ result });
+      return;
+    }
+    else if(type === 'humanize') {
+      const prompt = `Rewrite the following English text to sound human, natural and conversational, avoid AI-sounding phrasing:\n\n${text}`;
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 1200
+      });
+      const result = response.choices?.[0]?.message?.content ?? '';
+      res.json({ result });
+      return;
+    }
+    else if(type === 'summarize_en') {
+      const prompt = `Summarize the following English text concisely, keep main points:\n\n${text}`;
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 1200
+      });
+      const result = response.choices?.[0]?.message?.content ?? '';
+      res.json({ result });
+      return;
     }
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 1200
-    });
-
-    let result = response.choices?.[0]?.message?.content ?? '';
-
-    // محاولة تحويل النتيجة إلى JSON إذا كانت خدمة Grammar Checker
-    if (type === 'grammar') {
-      try {
-        // أحياناً GPT يرسل JSON مع فواصل إضافية أو تنسيق غير صحيح
-        const jsonStart = result.indexOf('{');
-        const jsonEnd = result.lastIndexOf('}') + 1;
-        const jsonString = result.substring(jsonStart, jsonEnd);
-        result = JSON.parse(jsonString);
-      } catch (err) {
-        console.error("Failed to parse JSON from GPT for grammar service:", err);
-        result = { original: text, corrected: text, errors: [] };
-      }
-    }
-
-    res.json({ result });
+    // fallback
+    res.json({ result: text });
 
   } catch (err) {
     console.error(err);
