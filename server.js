@@ -15,35 +15,39 @@ app.get('/', (req, res) => res.send('<h2>AI Text Tools Server يعمل بنجا�
 app.post('/api', async (req, res) => {
   try {
     const { type, text } = req.body;
-    if (!text) return res.status(400).json({ result: 'لا يوجد نص لمعالجته.' });
+    if(!text) return res.status(400).json({ result: 'لا يوجد نص لمعالجته.' });
 
     let prompt = text;
-    let returnFormat = false; // لتحديد إن كان مطلوب تصحيح وعرض الكلمات الخاطئة
 
     // Arabic services
-    if (type === 'spell') {
+    if(type === 'spell') {
       prompt = `صحح النص العربي التالي إملائياً ونحوياً دون تغيير المعنى:\n\n${text}`;
-      returnFormat = true;
-    } else if (type === 'tashkeel') {
+    }
+    else if(type === 'tashkeel') {
       prompt = `ضع التشكيل الكامل والمحافظ على المعنى للنص العربي التالي:\n\n${text}`;
-    } else if (type === 'summarize' || type === 'summarize_ar') {
+    }
+    else if(type === 'summarize' || type === 'summarize_ar') {
       prompt = `اختصر النص التالي إلى ملخص موجز باللغة ${type.includes('_ar') ? 'العربية' : 'English'}، احتفظ بالنقاط الأساسية:\n\n${text}`;
-    } else if (type === 'arabic_improve') {
+    }
+    else if(type === 'arabic_improve') {
       prompt = `حسّن لغة النص العربي التالي واجعله أكثر سلاسة وبلاغة دون تغيير المضمون:\n\n${text}`;
     }
 
     // English services
-    else if (type === 'grammar') {
-      prompt = `Correct the following English text for grammar and spelling errors. Keep the meaning exactly the same. 
-Return in JSON format with fields: original, corrected, errors (list of wrong words):\n\n${text}`;
-      returnFormat = true;
-    } else if (type === 'rewrite') {
+    else if(type === 'grammar') { // تم تعديل هذا السطر ليكون مدقق لغوي
+      prompt = `Correct the following English text for grammar and spelling errors. Keep the meaning exactly the same:\n\n${text}`;
+    }
+    else if(type === 'rewrite') {
       prompt = `Paraphrase the following English text, keep the original meaning, make it fluent:\n\n${text}`;
-    } else if (type === 'humanize') {
+    }
+    else if(type === 'humanize') {
       prompt = `Rewrite the following English text to sound human, natural and conversational, avoid AI-sounding phrasing:\n\n${text}`;
-    } else if (type === 'summarize_en') {
+    }
+    else if(type === 'summarize_en') {
       prompt = `Summarize the following English text concisely, keep main points:\n\n${text}`;
-    } else {
+    }
+    else {
+      // fallback: send raw text
       prompt = text;
     }
 
@@ -54,21 +58,7 @@ Return in JSON format with fields: original, corrected, errors (list of wrong wo
       max_tokens: 1200
     });
 
-    let result = response.choices?.[0]?.message?.content ?? '';
-
-    if (returnFormat) {
-      // محاولة تحويل النص JSON إذا كان السيرفر يعيد JSON
-      try {
-        // إذا النص لم يكن JSON بالفعل، نجرب تحويله
-        if (typeof result === 'string') {
-          result = JSON.parse(result);
-        }
-      } catch (err) {
-        // fallback: لو لم يتم الإرجاع كـ JSON، نص واحد فقط
-        result = { original: text, corrected: result, errors: [] };
-      }
-    }
-
+    const result = response.choices?.[0]?.message?.content ?? '';
     res.json({ result });
 
   } catch (err) {
